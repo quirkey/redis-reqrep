@@ -41,7 +41,36 @@ class TestReqrep < MiniTest::Unit::TestCase
     assert_equal "Response", returned[2]
   end
 
+  def test_should_invoke_handler_with_custom_return
+    app = App.new
+    request = Request.new :index, {'custom' => 'sup'}
+    app.add_handler :index do |request|
+      [:success, request.headers, nil]
+    end
+    returned = app.invoke_handler :index, request
+    assert returned.is_a?(Array)
+    assert_equal :success, returned[0]
+    assert_equal "sup", returned[1]['custom']
+    assert_equal nil, returned[2]
+  end
+
   def test_should_use_handler_to_serve_request
+    app = App.new
+    request = Request.new :reverse, {}, "body"
+    app.add_handler :reverse do |request|
+      request.body.reverse
+    end
+    reply = app.handle_request(request)
+    assert reply
+    assert reply.is_a?(Reply)
+    assert reply.id
+    assert_equal request.id, reply.request_id
+    assert_equal "success", reply.status
+    assert_equal "ydob", reply.body
+  end
+
+  def test_should_return_not_found_reply_for_bad_request
+
   end
 
 end

@@ -47,7 +47,7 @@ module Reqrep
 
     def store_message
       redis.set "#{message_type}:#{id}:action", action
-      redis.hmset "#{message_type}:#{id}:headers", *headers.flatten
+      redis.hmset "#{message_type}:#{id}:headers", *headers.flatten if headers.any?
       redis.set "#{message_type}:#{id}:body", body
     end
 
@@ -73,6 +73,8 @@ module Reqrep
   class Reply < Message
 
     attr_accessor :request_id
+
+    alias :status :action
 
     def self.next(request_id)
       q, reply_id = redis.blpop("reply:#{request_id}", 30)
@@ -115,13 +117,15 @@ module Reqrep
       end
     end
 
-    def serve_request
-      request = Request.next
-      if action = @handlers[request.action]
-        reply = Reply.new(*action.call(request))
-        reply.push
+    def handle_request(request)
+      if has_handler?(request.action)
+        reply = Reply.new(*invoke_handler(request.action, request))
       else
+        reply = Reply.new(:not_found)
       end
+      reply.request_id = request.id
+      reply.push
+      reply
     end
   end
 
