@@ -1,0 +1,23 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    metaclass (0.0.1)
+    minitest (3.1.0)
+    mocha (0.11.4)
+      metaclass (~> 0.0.1)
+    mock_redis (0.4.1)
+    redis (2.2.2)
+    redis-namespace (1.1.0)
+      redis (< 3.0.0)
+    redised (0.2.0)
+      redis (~> 2)
+      redis-namespace
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  minitest
+  mocha
+  mock_redis
+  redised
