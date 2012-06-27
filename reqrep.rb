@@ -51,6 +51,15 @@ module Reqrep
       redis.set "#{message_type}:#{id}:body", body
     end
 
+    def reply
+      q, reply_id = redis.blpop("reply:#{id}", 30)
+      reply = Reply.find(reply_id)
+      if reply
+        reply.request_id = id
+      end
+      reply
+    end
+
   end
 
   class Request < Message
@@ -75,11 +84,6 @@ module Reqrep
     attr_accessor :request_id
 
     alias :status :action
-
-    def self.next(request_id)
-      q, reply_id = redis.blpop("reply:#{request_id}", 30)
-      Reply.find(reply_id)
-    end
 
     def self.message_type
       :reply
@@ -109,11 +113,15 @@ module Reqrep
 
     def invoke_handler(action, request)
       action = @handlers[action.to_s]
-      returned = action.call(request)
-      if returned.is_a?(Array) && returned.length == 3
-        returned
-      else
-        [:success, {}, returned.to_s]
+      begin
+        returned = action.call(request)
+        if returned.is_a?(Array) && returned.length == 3
+          returned
+        else
+          [:success, {}, returned.to_s]
+        end
+      rescue => e
+        [:error, request.headers, "Error: #{e}\n\n#{e.backtrace}"]
       end
     end
 
@@ -127,6 +135,12 @@ module Reqrep
       reply.push
       reply
     end
+
+    def serve
+      request = Request.next
+      handle_request(request) if request
+    end
+
   end
 
   def self.request(action, headers = {}, body = nil)

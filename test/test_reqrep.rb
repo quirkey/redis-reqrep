@@ -70,7 +70,46 @@ class TestReqrep < MiniTest::Unit::TestCase
   end
 
   def test_should_return_not_found_reply_for_bad_request
+    app = App.new
+    request = Request.new :reverse, {}, "body"
+    reply = app.handle_request(request)
+    assert reply
+    assert reply.is_a?(Reply)
+    assert reply.id
+    assert_equal request.id, reply.request_id
+    assert_equal "not_found", reply.status
+  end
 
+  def test_should_return_error
+    app = App.new
+    request = Request.new :reverse, {}, "body"
+    app.add_handler :reverse do |request|
+      raise "Something bad"
+    end
+    reply = app.handle_request(request)
+    assert reply
+    assert reply.is_a?(Reply)
+    assert reply.id
+    assert_equal request.id, reply.request_id
+    assert_equal "error", reply.status
+    assert_match("Something bad", reply.body)
+  end
+
+  def test_should_serve_request_and_reply
+    request = Request.new :reverse, {}, "body"
+    request.push
+    app = App.new
+    app.add_handler :reverse do |request|
+      request.body.reverse
+    end
+    assert app.serve
+    reply = request.reply
+    assert reply
+    assert reply.is_a?(Reply)
+    assert reply.id
+    assert_equal request.id, reply.request_id
+    assert_equal "success", reply.status
+    assert_equal "ydob", reply.body
   end
 
 end
