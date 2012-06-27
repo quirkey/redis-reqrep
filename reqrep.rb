@@ -90,21 +90,43 @@ module Reqrep
 
   end
 
-  def self.add_handler(action, &block)
-    @handlers ||= {}
-    @handlers[action] = block
+  class App
+    attr_reader :handlers
+
+    def initialize
+      @handlers = {}
+    end
+
+    def add_handler(action, &block)
+      @handlers[action.to_s] = block
+    end
+
+    def has_handler?(action)
+      @handlers.has_key?(action.to_s)
+    end
+
+    def invoke_handler(action, request)
+      action = @handlers[action.to_s]
+      returned = action.call(request)
+      if returned.is_a?(Array) && returned.length == 3
+        returned
+      else
+        [:success, {}, returned.to_s]
+      end
+    end
+
+    def serve_request
+      request = Request.next
+      if action = @handlers[request.action]
+        reply = Reply.new(*action.call(request))
+        reply.push
+      else
+      end
+    end
   end
 
   def self.request(action, headers = {}, body = nil)
 
-  end
-
-  def self.serve
-    request = Request.next
-    if action = @handlers[request.action]
-      reply = Reply.new(*action.call)
-    else
-    end
   end
 
 end
