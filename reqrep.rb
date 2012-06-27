@@ -1,7 +1,6 @@
 require 'redised'
 
 module Reqrep
-
   class Message
     include Redised
 
@@ -107,6 +106,8 @@ module Reqrep
       @handlers[action.to_s] = block
     end
 
+    alias :on :add_handler
+
     def has_handler?(action)
       @handlers.has_key?(action.to_s)
     end
@@ -141,10 +142,18 @@ module Reqrep
       handle_request(request) if request
     end
 
+    def run!
+      loop do
+        serve
+      end
+    end
+
   end
 
-  def self.request(action, headers = {}, body = nil)
-
+  def self.request_and_wait_for_reply(action, headers = {}, body = nil)
+    request = Request.new(action, headers, body)
+    request.push
+    request.reply
   end
 
 end
